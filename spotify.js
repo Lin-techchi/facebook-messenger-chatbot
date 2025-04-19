@@ -1,3 +1,4 @@
+require('dotenv').config()
 const axios = require('axios');
 
 // Your Spotify API credentials (from the developer dashboard)
@@ -5,7 +6,7 @@ const SPOTIFY_API_URL = 'https://api.spotify.com/v1/search';
 
 // Fetch the access token from Spotify
 async function getSpotifyAccessToken() {
-  const auth = Buffer.from(`${process.env.CLIENT_ID}:${process.env.CLIENT_SECRET}`).toString('base64');
+  const auth = Buffer.from(`${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`).toString('base64');
 
   try {
     const response = await axios.post(
