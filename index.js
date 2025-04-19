@@ -6,7 +6,7 @@ const { searchTracks } = require('./spotify'); // Import the search function for
 const app = express();
 app.use(express.static('public'));
 
-const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN || 'YOUR_PAGE_ACCESS_TOKEN';
+const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN || 'EAAOUTb7FiWYBO8RbFhLdFOPJZApDV6lBA4ePyYiPL5iVuNM3Bmyv5QaMuVkrseclE5wHXt9ZAw8CS48sQZB98Q1aDYBVywM0hYUrpmIhQxulaZAaDRj1hGukqlkeGTt8LsdweKZCgHew7ai4PwdtnU5xazBOz2lNHNk1RHO17d6OlMBxDf6ZCFhhFlQlOXCZBtBwaCfOC9qRKZAZAuu2yW1sllSZBWF6cZD';
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN || 'myverifytoken';
 
 app.use(bodyParser.json());
