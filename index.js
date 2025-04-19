@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const request = require('request');
@@ -6,7 +8,7 @@ const { searchTracks } = require('./spotify'); // Import the search function for
 const app = express();
 app.use(express.static('public'));
 
-const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN || 'EAAOUTb7FiWYBO8RbFhLdFOPJZApDV6lBA4ePyYiPL5iVuNM3Bmyv5QaMuVkrseclE5wHXt9ZAw8CS48sQZB98Q1aDYBVywM0hYUrpmIhQxulaZAaDRj1hGukqlkeGTt8LsdweKZCgHew7ai4PwdtnU5xazBOz2lNHNk1RHO17d6OlMBxDf6ZCFhhFlQlOXCZBtBwaCfOC9qRKZAZAuu2yW1sllSZBWF6cZD';
+const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN || 'EAAOUTb7FiWYBOxhBYvKQQ7jZBT1wmMwWR1GAe4tZCXqb4OCcyrB2rgB24RvhQZBu9rZBsGCI9TeriaV0qgoqc51sXeKI6vAkDfrzB0GXrjP8jnRZC6ZCuiSktbaAFrN3NmYhQtsqapbJ5C0kxGtZAWXHUQ6CDdunmeZAnQDdFNtt7qeVZAGdYpHJa4U8hfwyUJZCtq';
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN || 'myverifytoken';
 
 app.use(bodyParser.json());
@@ -62,32 +64,24 @@ async function handleMessage(senderPsid, receivedMessage) {
       const track = await searchTracks(query);
 
       if (track) {
-        // If a song is found, create a message with album art, buttons, and links
-        response = {
-          attachment: {
-            type: 'template',
-            payload: {
-              template_type: 'generic',
-              elements: [{
-                title: `${track.name} by ${track.artists[0].name}`,
-                image_url: track.album.images[0].url,
-                subtitle: 'Tap below to play preview or open in Spotify',
-                buttons: [
-                  {
-                    type: 'web_url',
-                    url: track.external_urls.spotify,
-                    title: 'Open in Spotify',
-                  },
-                  {
-                    type: 'web_url',
-                    url: track.preview_url,
-                    title: 'Play Preview',
-                  },
-                ],
-              }],
+        // If a song is found and has a preview URL
+        if (track.preview_url) {
+          // Send audio preview as an attachment (like a voice message)
+          response = {
+            recipient: { id: senderPsid },
+            message: {
+              attachment: {
+                type: 'audio',
+                payload: {
+                  url: track.preview_url,
+                  is_reusable: true,
+                },
+              },
             },
-          },
-        };
+          };
+        } else {
+          response = { text: `Found "${track.name}", but no preview is available.` };
+        }
       } else {
         response = { text: "Sorry, I couldn't find that song." };
       }
@@ -103,25 +97,23 @@ async function handleMessage(senderPsid, receivedMessage) {
   callSendAPI(senderPsid, response);
 }
 
+
 // ✅ Send response back to Facebook Messenger
 function callSendAPI(senderPsid, response) {
   const requestBody = {
     recipient: { id: senderPsid },
     message: response,
   };
+  const axios = require('axios');
 
-  request({
-    uri: 'https://graph.facebook.com/v18.0/me/messages',
-    qs: { access_token: PAGE_ACCESS_TOKEN },
-    method: 'POST',
-    json: requestBody,
-  }, (err, res, body) => {
-    if (!err) {
+  axios.post(`https://graph.facebook.com/v18.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, requestBody)
+    .then(() => {
       console.log('✅ Message sent!');
-    } else {
-      console.error('❌ Unable to send message:', err);
-    }
-  });
+    })
+    .catch(err => {
+      console.error('❌ Unable to send message:', err.response?.data || err.message);
+    });
+  
 }
 
 // ✅ Start the server
