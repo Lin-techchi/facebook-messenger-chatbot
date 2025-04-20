@@ -1,7 +1,6 @@
-require('dotenv').config()
+require('dotenv').config();
 const axios = require('axios');
 
-// Your Spotify API credentials (from the developer dashboard)
 const SPOTIFY_API_URL = 'https://api.spotify.com/v1/search';
 
 // Fetch the access token from Spotify
@@ -26,7 +25,7 @@ async function getSpotifyAccessToken() {
   }
 }
 
-// Function to search for tracks
+// Function to search for tracks with a preview
 async function searchTracks(query) {
   try {
     const accessToken = await getSpotifyAccessToken();
@@ -35,7 +34,7 @@ async function searchTracks(query) {
       params: {
         q: query,
         type: 'track',
-        limit: 1,
+        limit: 10, // increase limit to find a track with a preview
       },
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -44,16 +43,18 @@ async function searchTracks(query) {
 
     const items = response.data.tracks.items;
 
-    console.log('🔎 Spotify search results:', items);
+    console.log('🔎 Spotify search results:', items.map(item => ({
+      name: item.name,
+      artist: item.artists[0].name,
+      preview_url: item.preview_url
+    })));
 
-    if (items.length > 0) {
-      const track = items[0];
-      if (!track.preview_url) {
-        console.warn('⚠️ Found a track, but no preview URL is available.');
-      }
-      return track;
+    const trackWithPreview = items.find(track => track.preview_url);
+
+    if (trackWithPreview) {
+      return trackWithPreview;
     } else {
-      console.warn('❗ No tracks found for query:', query);
+      console.warn('❗ No tracks with preview found for query:', query);
       return null;
     }
   } catch (err) {
