@@ -1,18 +1,26 @@
 const axios = require('axios');
 
-const AUDIUS_API_URL = 'https://discoveryprovider.audius.io/v1/tracks/search';
+// Dynamically get a working Audius discovery node
+async function getDiscoveryNode() {
+  try {
+    const res = await axios.get('https://api.audius.co');
+    return res.data.data[0]; // Return the first working node
+  } catch (err) {
+    console.error('Error fetching Audius discovery node:', err.message);
+    throw new Error('Unable to get discovery node');
+  }
+}
 
-// Function to search tracks from Audius
+// Search for a track using Audius API
 async function searchAudiusTrack(query) {
   try {
-    const response = await axios.get(AUDIUS_API_URL, {
+    const node = await getDiscoveryNode();
+    const response = await axios.get(`${node}/v1/tracks/search`, {
       params: {
-        query,   // The song name you want to search for
-        limit: 1  // Limit results to 1 track
+        query,
+        limit: 1
       }
     });
-
-    console.log('Audius API Response:', response.data);  // Log the entire response for debugging
 
     const tracks = response.data.data;
 
@@ -27,7 +35,7 @@ async function searchAudiusTrack(query) {
       return null;
     }
   } catch (err) {
-    console.error('Error fetching from Audius:', err);
+    console.error('Error fetching from Audius:', err.message);
     throw new Error('Error fetching track from Audius API');
   }
 }
