@@ -2,17 +2,16 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
-const { searchAudiusTrack } = require('./audius');  // Import the Audius search function
+const { searchAudiusTrack } = require('./audius');
 
 const app = express();
-app.use(express.static('public'));
 
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN || 'YOUR_PAGE_ACCESS_TOKEN';
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN || 'myverifytoken';
 
 app.use(bodyParser.json());
-app.use(express.static(__dirname));
 
+// Verify the webhook
 app.get('/webhook', (req, res) => {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
@@ -28,6 +27,7 @@ app.get('/webhook', (req, res) => {
   }
 });
 
+// Handle incoming messages
 app.post('/webhook', (req, res) => {
   const body = req.body;
 
@@ -48,35 +48,32 @@ app.post('/webhook', (req, res) => {
   }
 });
 
+// Handle the actual message
 async function handleMessage(senderPsid, receivedMessage) {
-  let response;
-
   if (receivedMessage.toLowerCase().startsWith('play ')) {
-    const song = receivedMessage.substring(5);  // Extract song name
+    const song = receivedMessage.substring(5);  // Extract song name after "play "
+
     try {
-      const track = await searchAudiusTrack(song);  // Search for the track on Audius
+      const track = await searchAudiusTrack(song);  // Call the Audius API to search for the track
 
       if (track) {
-        // Send response with Audius track URL
-        response = {
+        // If track found, send a response with title, artist, and link to Audius
+        const response = {
           text: `🎵 ${track.title} by ${track.artist}\n\nListen here: ${track.streamUrl}`
         };
-        callSendAPI(senderPsid, response);
+        callSendAPI(senderPsid, response);  // Send the response to the user
       } else {
-        response = { text: "❌ Couldn't find that song on Audius." };
-        callSendAPI(senderPsid, response);
+        // If no track found, inform the user
+        callSendAPI(senderPsid, { text: "❌ Couldn't find that song on Audius." });
       }
     } catch (err) {
-      console.error('Audius error:', err);
-      response = { text: 'Oops! Something went wrong.' };
-      callSendAPI(senderPsid, response);
+      console.error('Audius error:', err);  // Log any errors
+      callSendAPI(senderPsid, { text: 'Oops! Something went wrong.' });  // Handle errors gracefully
     }
-  } else {
-    response = { text: "Type 'play [song name]' to search for a song." };
-    callSendAPI(senderPsid, response);
   }
 }
 
+// Send the response to the user on Facebook Messenger
 function callSendAPI(senderPsid, response) {
   const requestBody = {
     recipient: { id: senderPsid },
