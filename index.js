@@ -1,11 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
-const fs = require('fs');
-const path = require('path');
 const axios = require('axios');
-const FormData = require('form-data');
-const { searchTracks } = require('./itunes');  // Import the iTunes search function
+const { searchAudiusTrack } = require('./audius');  // Import the Audius search function
 
 const app = express();
 app.use(express.static('public'));
@@ -56,50 +53,22 @@ async function handleMessage(senderPsid, receivedMessage) {
 
   if (receivedMessage.toLowerCase().startsWith('play ')) {
     const song = receivedMessage.substring(5);  // Extract song name
-    const query = encodeURIComponent(song);  // Encode the song name
-
     try {
-      const track = await searchTracks(query);
+      const track = await searchAudiusTrack(song);  // Search for the track on Audius
 
-      if (track && track.previewUrl) {
-        const filePath = path.join(__dirname, 'preview.mp3');
-
-        const writer = fs.createWriteStream(filePath);
-        const audioResponse = await axios({
-          method: 'get',
-          url: track.previewUrl,
-          responseType: 'stream',
-        });
-
-        audioResponse.data.pipe(writer);
-
-        writer.on('finish', async () => {
-          const form = new FormData();
-          form.append('recipient', JSON.stringify({ id: senderPsid }));
-          form.append('message', JSON.stringify({
-            attachment: {
-              type: 'audio',
-              payload: {}
-            }
-          }));
-          form.append('filedata', fs.createReadStream(filePath));
-
-          try {
-            await axios.post(`https://graph.facebook.com/v18.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, form, {
-              headers: form.getHeaders(),
-            });
-            console.log('🎵 Audio sent!');
-          } catch (err) {
-            console.error('❌ Error sending audio:', err.response?.data || err.message);
-          }
-        });
+      if (track) {
+        // Send response with Audius track URL
+        response = {
+          text: `🎵 ${track.title} by ${track.artist}\n\nListen here: ${track.streamUrl}`
+        };
+        callSendAPI(senderPsid, response);
       } else {
-        response = { text: "Sorry, couldn't find a playable preview." };
+        response = { text: "❌ Couldn't find that song on Audius." };
         callSendAPI(senderPsid, response);
       }
     } catch (err) {
-      console.error('Error searching for song:', err);
-      response = { text: "Sorry, something went wrong." };
+      console.error('Audius error:', err);
+      response = { text: 'Oops! Something went wrong.' };
       callSendAPI(senderPsid, response);
     }
   } else {
